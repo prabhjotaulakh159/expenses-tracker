@@ -27,6 +27,13 @@ func makeDatabaseConnection() (*gorm.DB, *sql.DB, error) {
 	return db, sqlDb, err
 }
 
+func doMigrations(gormDb *gorm.DB) {
+	if err := gormDb.AutoMigrate(&db.User{}); err != nil {
+		log.Fatalf("error in migrating models: %s", err.Error())
+	}
+	log.Println("successfully performed migrations")
+}
+
 func closeDatabaseConnection(sqlDb *sql.DB) {
 	if err := sqlDb.Close(); err != nil {
 		log.Fatalf("error in closing database connection: %s", err.Error())
@@ -57,11 +64,12 @@ func doGracefulShutdown(srv *http.Server, shutDownContext context.Context) {
 }
 
 func main() {
-	_, sqlDb, err := makeDatabaseConnection()
+	gormDb, sqlDb, err := makeDatabaseConnection()
 	if err != nil {
 		log.Fatalf("error during database connection: %s", err.Error())
 	}
 	defer closeDatabaseConnection(sqlDb)
+	doMigrations(gormDb)
 	log.Println("successfully connected to database")
 
 	router := gin.Default()
